@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "description": "خادم تحميل الفيديوهات",
   "main": "server.js",
+  "engines": {
+    "node": ">=16.0.0"
+  },
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js"
@@ -12,7 +15,6 @@
     "cors": "^2.8.5",
     "ytdl-core": "^4.11.4",
     "fb-video-downloader": "^1.0.3",
-    "tiktok-scraper": "^1.4.36",
-    "nodemon": "^2.0.15"
+    "tiktok-scraper": "^1.4.36"
   }
 }
