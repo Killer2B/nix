@@ -1,8 +1,8 @@
 const express = require('express');
 const cors = require('cors');
 const ytdl = require('ytdl-core');
-const fbvideos = require('fb-video-downloader');
-const TikTokScraper = require('tiktok-scraper');
+const axios = require('axios');
+const cheerio = require('cheerio');
 const app = express();
 const port = process.env.PORT || 3000;
 
@@ -39,28 +39,39 @@ app.post('/api/validate', async (req, res) => {
                 break;
 
             case 'facebook':
-                videoInfo = await fbvideos.getInfo(url);
+                // استخدام axios للحصول على معلومات الفيديو
+                const response = await axios.get(url);
+                const $ = cheerio.load(response.data);
+                const title = $('meta[property="og:title"]').attr('content');
+                const thumbnail = $('meta[property="og:image"]').attr('content');
+                
                 res.json({
                     valid: true,
                     info: {
-                        title: videoInfo.title,
-                        thumbnail: videoInfo.thumbnail,
-                        formats: videoInfo.formats
+                        title: title || 'Facebook Video',
+                        thumbnail: thumbnail,
+                        formats: [{
+                            quality: 'HD',
+                            format: 'mp4',
+                            url: url
+                        }]
                     }
                 });
                 break;
 
             case 'tiktok':
-                videoInfo = await TikTokScraper.getVideoMeta(url);
+                // استخدام axios للحصول على معلومات الفيديو
+                const tiktokResponse = await axios.get(url);
+                const tiktokData = tiktokResponse.data;
+                
                 res.json({
                     valid: true,
                     info: {
-                        title: videoInfo.text,
-                        author: videoInfo.authorMeta.name,
-                        thumbnail: videoInfo.imageUrl,
+                        title: 'TikTok Video',
                         formats: [{
-                            quality: 'عالية',
-                            url: videoInfo.videoUrl
+                            quality: 'HD',
+                            format: 'mp4',
+                            url: url
                         }]
                     }
                 });
@@ -77,12 +88,9 @@ app.post('/api/validate', async (req, res) => {
 // مسار التحميل
 app.post('/api/download', async (req, res) => {
     try {
-        const { url, format, quality } = req.body;
+        const { url, format, quality, platform } = req.body;
         
-        // إعداد رأس الاستجابة للتحميل
-        res.header('Content-Disposition', `attachment; filename="video.${format}"`);
-        
-        switch (req.body.platform) {
+        switch (platform) {
             case 'youtube':
                 ytdl(url, {
                     quality: quality,
@@ -91,15 +99,13 @@ app.post('/api/download', async (req, res) => {
                 break;
 
             case 'facebook':
-                // معالجة تحميل فيديو فيسبوك
-                const fbVideo = await fbvideos.download(url, quality);
-                res.redirect(fbVideo.url);
-                break;
-
             case 'tiktok':
-                // معالجة تحميل فيديو تيك توك
-                const tiktokVideo = await TikTokScraper.video(url);
-                res.redirect(tiktokVideo.videoUrl);
+                const videoResponse = await axios({
+                    method: 'GET',
+                    url: url,
+                    responseType: 'stream'
+                });
+                videoResponse.data.pipe(res);
                 break;
 
             default:
@@ -110,12 +116,6 @@ app.post('/api/download', async (req, res) => {
     }
 });
 
-// تشغيل السيرفر
-app.use(cors({
-    origin: '*', // يمكنك تحديد النطاق المسموح به هنا
-    methods: ['GET', 'POST'],
-    allowedHeaders: ['Content-Type']
-}));
 app.listen(port, '0.0.0.0', () => {
     console.log(`Server is running on port ${port}`);
 });
