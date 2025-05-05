@@ -4,7 +4,7 @@ const ytdl = require('ytdl-core');
 const fbvideos = require('fb-video-downloader');
 const TikTokScraper = require('tiktok-scraper');
 const app = express();
-const port = 3000;
+const port = process.env.PORT || 3000;
 
 // إعدادات الوسيط
 app.use(cors());
@@ -111,6 +111,11 @@ app.post('/api/download', async (req, res) => {
 });
 
 // تشغيل السيرفر
-app.listen(port, () => {
+app.use(cors({
+    origin: '*', // يمكنك تحديد النطاق المسموح به هنا
+    methods: ['GET', 'POST'],
+    allowedHeaders: ['Content-Type']
+}));
+app.listen(port, '0.0.0.0', () => {
     console.log(`Server is running on port ${port}`);
 });
